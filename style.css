@@ -4,9 +4,9 @@
   line-height: 24px;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  /* color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87); */
+  /* background-color: #242424; */
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -25,16 +25,25 @@ a:hover {
 }
 
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+  /* margin: 0;
+  display: flex; */
+  /* align-items: center; */
+  /* min-width: 320px;
+  min-height: 100vh; */
+  display: block;
+  margin-left: 400px;
 }
 
 h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+  /* font-size: 3.2em;
+  line-height: 1.1; */
+  /* text-align: center;  */
+  margin-left: 150px;
+}
+
+h3 {
+  /* text-align: center; */
+  margin-left: 220px;
 }
 
 #app {

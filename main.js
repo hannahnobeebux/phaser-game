@@ -1,9 +1,16 @@
-// import './style.css'
+import './style.css'
 
 import Phaser, {Game} from 'phaser'
 
 let frog;
+
 let platforms; 
+let grass; 
+let spikes; 
+let boxes; 
+let trophy; 
+
+
 let isRunning;
 let cursors;
 
@@ -19,6 +26,17 @@ let background1;
 
 let score = 0;
 let scoreText;
+let newtext;
+
+let camera; 
+
+let trophyCollected = false;
+let frogDead = false; 
+
+let gameText;
+let gameOverText;
+
+let boxHit = false; 
 
 
 // function addPlatform(x,y, width) {
@@ -36,11 +54,11 @@ function preload() {
   //LOADING FROG SPRITE AND ALL ITS POSITIONING
   this.load.spritesheet('idle', 'assets-2/Main Characters/Ninja Frog/Idle (32x32).png', {frameWidth: 32, frameHeight: 32})
   this.load.spritesheet('double-jump', 'assets-2/Main Characters/Ninja Frog/Double Jump (32x32).png', {frameWidth: 32, frameHeight: 32})
-  this.load.spritesheet('fall', 'assets-2/Main Characters/Mask Dude/Fall (32x32).png', {frameWidth: 32, frameHeight: 32})
-  this.load.spritesheet('hit', 'assets-2/Main Characters/Mask Dude/Hit (32x32).png', {frameWidth: 32, frameHeight: 32})
-  this.load.spritesheet('jump', 'assets-2/Main Characters/Mask Dude/Jump (32x32).png', {frameWidth: 32, frameHeight: 32})
-  this.load.spritesheet('run', 'assets-2/Main Characters/Mask Dude/Run (32x32).png', {frameWidth: 32, frameHeight: 32})
-  this.load.spritesheet('wall-jump', 'assets-2/Main Characters/Mask Dude/Wall Jump (32x32).png', {frameWidth: 32, frameHeight: 32})
+  this.load.spritesheet('fall', 'assets-2/Main Characters/Ninja Frog/Fall (32x32).png', {frameWidth: 32, frameHeight: 32})
+  this.load.spritesheet('hit', 'assets-2/Main Characters/Ninja Frog/Hit (32x32).png', {frameWidth: 32, frameHeight: 32})
+  this.load.spritesheet('jump', 'assets-2/Main Characters/Ninja Frog/Jump (32x32).png', {frameWidth: 32, frameHeight: 32})
+  this.load.spritesheet('run', 'assets-2/Main Characters/Ninja Frog/Run (32x32).png', {frameWidth: 32, frameHeight: 32})
+  this.load.spritesheet('wall-jump', 'assets-2/Main Characters/Ninja Frog/Wall Jump (32x32).png', {frameWidth: 32, frameHeight: 32})
 
   //LOADING BACKGROUND IMAGES 
   this.load.image('brown', 'assets-2/Background/Brown.png')
@@ -56,13 +74,28 @@ function preload() {
   this.load.spritesheet('tile', 'assets-2/Terrain/Terrain (16x16).png', {frameWidth: 88, frameHeight: 58})
 
   //LOADING TILEMAP 
-  this.load.image('tileMapImage', 'assets-2/Terrain/Terrain (16x16).png')
+  
 
   this.load.image('sky', 'assets-2/Background/bluesky.png')
   this.load.image('spike', 'assets-2/Traps/Spikes/Idle.png')
 
-  this.load.tilemapTiledJSON('map', 'newPlatformMap.json')
   
+  //LOADING TILESHEET VERSION 1
+  // this.load.tilemapTiledJSON('map', 'newPlatformMap.json')
+  // this.load.image('tileMapImage', 'assets-2/Terrain/Terrain (16x16).png')
+
+  //LOADING TILESHEET VERSION 2
+  // this.load.tilemapTiledJSON('map', 'mapVersion2.json')
+  // this.load.image('tileMapImage', 'assets-2/Terrain/Terrain (16x16).png')
+
+  //TILESHEET VERSION 3
+  this.load.tilemapTiledJSON('map', 'mapVersion4.json')
+  this.load.image('tileMapImage', 'assets-2/Terrain/Terrain (16x16).png')
+  this.load.image('grass','assets-2/Background/Green.png' )
+  this.load.image('spikes', 'assets-2/Traps/Spikes/Idle.png')
+  this.load.image('boxes', 'assets-2/Terrain/Terrain (16x16).png')
+  this.load.image('trophy', 'assets-2/Items/Checkpoints/End/End (Idle).png')
+
 }
 
 function create() {
@@ -70,16 +103,31 @@ function create() {
   this.add.image(400,300, 'sky')
 
   const map = this.make.tilemap({key: 'map'})
-  const tileset = map.addTilesetImage('Terrain (16x16)', 'tileMapImage')
-  platforms = map.createStaticLayer('Tile Layer 1', tileset, 0, 0)
+  // const tileset = map.addTilesetImage('Terrain (16x16)', 'tileMapImage')
+  
+//LAYER 1 
+  const tileset2 = map.addTilesetImage('grass', 'grass')
+  grass = map.createStaticLayer('grass', tileset2, 0, 0)
+//LAYER 2
+  const tileset = map.addTilesetImage('terrain', 'tileMapImage')
+  platforms = map.createStaticLayer('blocks', tileset, 0, 0)
+//LAYER 3 
+  const tileset3 = map.addTilesetImage('spikes', 'spikes')
+  spikes = map.createStaticLayer('spikes', tileset3, 0, 0)
+//LAYER 4 
+
+  const tileset5 = map.addTilesetImage('terrain', 'tileMapImage')
+  boxes = map.createStaticLayer('boxes', tileset5, 0, 0)
+
+  const tileset4 = map.addTilesetImage('trophy', 'trophy')
+  trophy = map.createLayer('trophy', tileset4, 0, 0)
+
+
+  // platforms = map.createStaticLayer('Tile Layer 1', tileset, 0, 0)
+  
 
   // this.world.setBounds(0, 0, 800, 600);
   // this.camera.follow(frog);
-
-  //ADDING CAMERA FEATURE 
-  // this.cameras.main.setBounds(0, 0, 800, 600)
-  // this.cameras.main.startFollow(this.frog)
-
 
 
   // platforms = this.physics.add.staticGroup()
@@ -142,7 +190,7 @@ function create() {
   frog.setScale(2)
   frog.setBounce(0.2)
   //PREVENTS  frog FROM RUNNING OFF THE SCREEN 
-  frog.setCollideWorldBounds(true)
+  // frog.setCollideWorldBounds(true)
 
   // strawberry = this.physics.add.sprite(495, 300, 'strawberry')
 
@@ -161,6 +209,44 @@ function create() {
   this.physics.add.collider(frog, platforms)
   console.log(platforms)
 
+  spikes.setCollisionByExclusion(-1, true)
+  this.physics.add.collider(frog, spikes, frogDie)
+
+  boxes.setCollisionByExclusion(-1, true)
+  this.physics.add.collider(frog, boxes, hitBox)
+
+  //REMOVING AN INDIVIDUAL BOX 
+  function hitBox() {
+    boxHit = true 
+    boxes.visible = false 
+  }
+
+  trophy.setCollisionByExclusion(-1, true)
+
+  function frogDie() {
+    // frog.anims.play('hit', true)
+    // frog.visible = false
+    // frog.angle = 90
+    // frog.anims.play("hit", true)
+    // console.log(2)
+    frogDead = true 
+  }
+
+  // this.physics.add.collider(frog, trophy, collectTrophy)
+  // this.physics.add.overlap(frog, trophy, collectTrophy, null, this);
+
+  function collectTrophy(trophy) {
+    // trophy.disableBody(true, true)
+    // this.scene.arcade.remove(trophy, true)
+    trophyCollected = true 
+    // trophy.body.setOffset(1000, 1000)
+    // trophy.setVisible(false)
+    // trophy.disableBody(true, true)
+    // console.log(trophy)
+  }
+
+
+
   // strawberry = this.physics.add.sprite(500,300, 'strawberry')
   // strawberry.setScale(2)
   // strawberry.setBounce(0.5)
@@ -169,7 +255,7 @@ function create() {
   strawberry = this.physics.add.group({
     key: 'strawberry', 
     repeat: 8, 
-    setXY: {x: 12, y:50, stepX: 70}
+    setXY: {x: 200, y:200, stepX: 70}
   })
 
   strawberry.children.iterate(function (child) {
@@ -178,9 +264,13 @@ function create() {
 
 });
 
+  // strawberry.setCollideWorldBounds(true)
+
 
   this.physics.add.collider(strawberry, platforms)
   this.physics.add.overlap(frog, strawberry, collectItem, null, this);
+
+  newtext = this.add.text(550,0,scoreText, {fontSize: '40px', color: "#199A3C"})
 
   function collectItem (frog, strawberry){
     strawberry.disableBody(true, true);
@@ -189,8 +279,9 @@ function create() {
     //10 POINTS ARE ADDED FOR EVERY STAR THAT IS COLLECTED, THIS IS APPENDED ONTO THE SCREEN AND UPDATES AS THEY ARE COLLECTED 
     score += 10;
     // scoreText.setText("Score: " + score)
-    scoreText = "Score: " + score; 
-    this.add.text(0,0,scoreText, {fontSize: '40px'})
+    scoreText = "🍓count: " + score; 
+    newtext.setText(scoreText)
+
 
     //ADDING TO THIS FUNCTION - BOMB FUNCTIONALITY 
       //checking to see how many stars are left alive 
@@ -208,6 +299,11 @@ function create() {
 
 // strawberry.setCollideWorldBounds(true)
 
+
+camera = this.cameras.main;
+    camera.setBounds(0, 0, 6400, 600);
+    camera.startFollow(frog, true, 0.05, 0.05);
+    
  
 
   //GOING LEFT 
@@ -273,6 +369,19 @@ function create() {
 
   })
 
+  //ANIMARTION TO DIE 
+  this.anims.create({
+    key: 'hit', 
+    frameRate: 10,
+    frames: this.anims.generateFrameNumbers('hit', {start: 2, end: 6})
+  })
+
+  //ANIMATION FOR BREAKING BOX 
+
+  //EDITING GAME OVER TEXT 
+  gameOverText = this.add.text(400, 250, gameText, {fontSize: '64px', color: '#FA0808', fontWeight: 'bold'})
+  // gameOverText.setOrigin(2)
+  // camera.startFollow(gameOverText)
 
 }
 
@@ -280,37 +389,58 @@ function update() {
 
   // background1.tilePositionX += 0.5;
 
-  if (cursors.left.isDown){
-    isRunning = true 
-    frog.flipX = true 
-    frog.setVelocityX(-290)
-    frog.anims.play('left', true)
-
-  } else if (cursors.right.isDown) {
-    isRunning = true 
-    frog.flipX = false 
-    frog.setVelocityX(500)
-    frog.anims.play('right', true)
-  } else if (cursors.up.isDown){
-    isRunning = false 
-    frog.flipX = false
-    frog.setVelocityX(0)
-    frog.setVelocityY(-800)
-    frog.anims.play('jump', true)
-
-  } 
-    else {
-    frog.setVelocityX(0)
-    frog.anims.play('idle', true)
-    // strawberry.anims.play('strawberry', true)
-
+  if (frogDead === false) {
+    if (cursors.left.isDown){
+      isRunning = true 
+      frog.flipX = true 
+      frog.setVelocityX(-290)
+      frog.anims.play('left', true)
+  
+    } else if (cursors.right.isDown) {
+      isRunning = true 
+      frog.flipX = false 
+      frog.setVelocityX(500)
+      frog.anims.play('right', true)
+    } else if (cursors.up.isDown){
+      isRunning = false 
+      frog.flipX = false
+      frog.setVelocityX(0)
+      frog.setVelocityY(-800)
+      frog.anims.play('jump', true)
+  
+    } 
+    else if (cursors.space.isDown) {
+      // isRunning=false;
+      // frog.setVeloctyX(0)
+      frog.anims.play("hit", true )
+    }
+      else {
+      frog.setVelocityX(0)
+      frog.anims.play('idle', true)
+      // strawberry.anims.play('strawberry', true)
+  
+  
+    }
+  
+    if (cursors.up.isDown && frog.body.touching.down)
+  {
+      frog.setVelocityY(-330);
+  }
+  } else {
+    frog.anims.play("hit", true)
+    gameText =  "GAME OVER"
+    gameOverText.setText(gameText)
 
   }
 
-  if (cursors.up.isDown && frog.body.touching.down)
-{
-    frog.setVelocityY(-330);
-}
+  
+
+
+  
+  //remove cursors
+  // cursors.
+  // frog.destroy()
+
 
 }
 
@@ -325,9 +455,9 @@ function update() {
 const myGame = new Game ({
   type: Phaser.AUTO, 
   width: 800, 
-  height: 600, 
+  height: 640, 
   backgroundColor: "#85B88B",
-  autoCenter: true,
+  // autoCenter: true,
   physics: {
     default: 'arcade', 
     arcade: {
