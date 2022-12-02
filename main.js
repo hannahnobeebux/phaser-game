@@ -38,6 +38,16 @@ let gameOverText;
 
 let boxHit = false; 
 
+let audio_gameover;
+let audio_jumping;
+let audio_trophySound; 
+
+let winnerText;
+let winnerGameText;
+
+let jumpTimer = 0
+let hasJumped = 0;
+
 
 // function addPlatform(x,y, width) {
 //   for (let i=0; i<width; i++){
@@ -47,7 +57,6 @@ let boxHit = false;
 //     // .setOffset(0.1, 0)
 //   }
 // }
-
 
 
 function preload() {
@@ -68,6 +77,7 @@ function preload() {
   this.load.image('starterPlatform', 'assets-2/Terrain/starterPlatform.png')
 
   this.load.spritesheet('strawberry', 'assets-2/Items/Fruits/Strawberry.png', {frameWidth:32, frameHeight:32})
+  this.load.spritesheet('banana', 'assets-2/Items/Fruits/Bananas.png', {frameWidth:32, frameHeight:32})
 
   
   //LOADING TILES + TERRAIN 
@@ -89,17 +99,23 @@ function preload() {
   // this.load.image('tileMapImage', 'assets-2/Terrain/Terrain (16x16).png')
 
   //TILESHEET VERSION 3
-  this.load.tilemapTiledJSON('map', 'mapVersion4.json')
+  this.load.tilemapTiledJSON('map', 'mapVersion7.json')
   this.load.image('tileMapImage', 'assets-2/Terrain/Terrain (16x16).png')
   this.load.image('grass','assets-2/Background/Green.png' )
   this.load.image('spikes', 'assets-2/Traps/Spikes/Idle.png')
   this.load.image('boxes', 'assets-2/Terrain/Terrain (16x16).png')
   this.load.image('trophy', 'assets-2/Items/Checkpoints/End/End (Idle).png')
+  this.load.image('hitBoxes', 'assets-2/orangeSquare2.png', {frameWidth: 32, frameHeight: 32})
+
+  //AUDIO 
+  this.load.audio('gameover', 'sounds/gameOver.ogg')
+  this.load.audio('jumpingSound', 'sounds/mixkit-player-jumping-in-a-video-game-2043.ogg')
+  this.load.audio('trophySound', 'sounds/mixkit-extra-bonus-in-a-video-game-2045.ogg')
 
 }
 
 function create() {
-
+  
   this.add.image(400,300, 'sky')
 
   const map = this.make.tilemap({key: 'map'})
@@ -115,12 +131,24 @@ function create() {
   const tileset3 = map.addTilesetImage('spikes', 'spikes')
   spikes = map.createStaticLayer('spikes', tileset3, 0, 0)
 //LAYER 4 
-
+ 
   const tileset5 = map.addTilesetImage('terrain', 'tileMapImage')
   boxes = map.createStaticLayer('boxes', tileset5, 0, 0)
 
-  const tileset4 = map.addTilesetImage('trophy', 'trophy')
-  trophy = map.createLayer('trophy', tileset4, 0, 0)
+  // const tileset4 = map.addTilesetImage('trophy', 'trophy')
+  // trophy = map.createLayer('trophy', tileset4, 0, 0)
+
+  audio_gameover = this.sound.add('gameover', {
+    loop: false, 
+    seek: 0, 
+    volume: 0.2
+  })
+
+  audio_jumping = this.sound.add('jumpingSound')
+  audio_trophySound = this.sound.add('trophySound')
+  // audio_gameover.play()
+  // console.log(audio_gameover)
+ 
 
 
   // platforms = map.createStaticLayer('Tile Layer 1', tileset, 0, 0)
@@ -213,44 +241,84 @@ function create() {
   this.physics.add.collider(frog, spikes, frogDie)
 
   boxes.setCollisionByExclusion(-1, true)
-  this.physics.add.collider(frog, boxes, hitBox)
+  this.physics.add.collider(frog, boxes)
 
-  //REMOVING AN INDIVIDUAL BOX 
-  function hitBox() {
-    boxHit = true 
-    boxes.visible = false 
-  }
 
-  trophy.setCollisionByExclusion(-1, true)
 
-  function frogDie() {
+  // trophy.setCollisionByExclusion(-1, true)
+
+  function frogDie(frog, spikes) {
     // frog.anims.play('hit', true)
     // frog.visible = false
     // frog.angle = 90
     // frog.anims.play("hit", true)
     // console.log(2)
     frogDead = true 
+   
   }
 
-  // this.physics.add.collider(frog, trophy, collectTrophy)
+  // this.physics.add.collider(frog, trophy)
   // this.physics.add.overlap(frog, trophy, collectTrophy, null, this);
 
-  function collectTrophy(trophy) {
+  function collectTrophy(frog, trophy) {
     // trophy.disableBody(true, true)
     // this.scene.arcade.remove(trophy, true)
-    trophyCollected = true 
+  
+  
     // trophy.body.setOffset(1000, 1000)
     // trophy.setVisible(false)
     // trophy.disableBody(true, true)
     // console.log(trophy)
+    trophyCollected = true 
+    winnerText = "WINNER!!🏆"
+    winnerGameText.setText(winnerText)
+    trophy.destroy()
   }
+
+  const trophies = this.physics.add.group({
+    allowGravity: false, 
+    immovable: true
+  })
+  map.getObjectLayer('trophy').objects.forEach((trophy) => {
+    const trophySprite = trophies.create(trophy.x + 20, trophy.y - 32, 'trophy')
+    trophySprite.body.setSize(trophy.width * 2, trophy.height)
+  })
+  this.physics.add.collider(frog, trophies, collectTrophy, null, this)
+
+  function createStrawberry(hitBoxes){
+    // strawberry = this.physics.add.sprite('strawberry')
+    strawberry.create(hitBoxes.x, hitBoxes.y - 32, "strawberry")
+
+  } 
+
+  //REMOVING AN INDIVIDUAL BOX 
+  function hitBox(frog, hitBoxes) {
+    boxHit = true 
+    // hitBoxes.visible = false 
+    hitBoxes.destroy()
+    createStrawberry(hitBoxes)
+
+  }
+
+  const hitBoxes = this.physics.add.group({
+    allowGravity: false, 
+    immovable: true
+  })
+  map.getObjectLayer('hitBoxes').objects.forEach((hitBox) => {
+    const boxSprite = hitBoxes.create(hitBox.x, hitBox.y - 32, 'hitBoxes')
+    // boxSprite.body.setSize(hitBox.width, hitBox.height)
+     boxSprite.body.setSize(32, 32)
+  })
+  this.physics.add.collider(frog, hitBoxes, hitBox, null, this)
+
 
 
 
   // strawberry = this.physics.add.sprite(500,300, 'strawberry')
   // strawberry.setScale(2)
   // strawberry.setBounce(0.5)
- 
+
+
 
   strawberry = this.physics.add.group({
     key: 'strawberry', 
@@ -270,7 +338,7 @@ function create() {
   this.physics.add.collider(strawberry, platforms)
   this.physics.add.overlap(frog, strawberry, collectItem, null, this);
 
-  newtext = this.add.text(550,0,scoreText, {fontSize: '40px', color: "#199A3C"})
+  newtext = this.add.text(500,0,scoreText, {fontSize: '40px', color: "#199A3C"})
 
   function collectItem (frog, strawberry){
     strawberry.disableBody(true, true);
@@ -301,7 +369,7 @@ function create() {
 
 
 camera = this.cameras.main;
-    camera.setBounds(0, 0, 6400, 600);
+    camera.setBounds(0, 0, 1200, 0);
     camera.startFollow(frog, true, 0.05, 0.05);
     
  
@@ -369,6 +437,15 @@ camera = this.cameras.main;
 
   })
 
+  //ANIMATION FOR BANANA
+  this.anims.create({
+    key: 'bananas', 
+    frameRate: 10, 
+    repeat: -1, 
+    frames: this.anims.generateFrameNumbers('banana', {start:0, end:16})
+
+  })
+
   //ANIMARTION TO DIE 
   this.anims.create({
     key: 'hit', 
@@ -383,11 +460,24 @@ camera = this.cameras.main;
   // gameOverText.setOrigin(2)
   // camera.startFollow(gameOverText)
 
+  winnerGameText = this.add.text(500, 250, gameText, {fontSize: '96px', color: '#E2B80D', fontWeight: 'bold', textOutline: "#000000"})
+  
+  //PLAYING AUDIO
+  audio_gameover.play()
+  audio_gameover.pause()
+
+  // audio_jumping.play()
+  // audio_jumping.pause()
+
+  audio_trophySound.play()
+  audio_trophySound.pause()
+
 }
 
 function update() {
-
+ 
   // background1.tilePositionX += 0.5;
+    // console.log(myGame.sound.context.state)
 
   if (frogDead === false) {
     if (cursors.left.isDown){
@@ -401,19 +491,37 @@ function update() {
       frog.flipX = false 
       frog.setVelocityX(500)
       frog.anims.play('right', true)
-    } else if (cursors.up.isDown){
-      isRunning = false 
-      frog.flipX = false
-      frog.setVelocityX(0)
-      frog.setVelocityY(-800)
-      frog.anims.play('jump', true)
-  
+
     } 
+
+    // else {
+    //   frog.setVelocityX(0)
+    //   if (frog.body.onFloor()) {
+    //     if (cursors.space)
+    //   }
+    // }
+    //JUMPING SOUND EFFECT + ANIMATION  cursors.up.isDown & frog.body.onFloor()
+    else if (cursors.up.isDown & frog.body.onFloor()){
+
+
+      frog.setVelocityY(-720)
+      frog.anims.play('jump', true)
+      audio_jumping.play()
+      // hasJumped = true
+ 
+  } 
     else if (cursors.space.isDown) {
       // isRunning=false;
       // frog.setVeloctyX(0)
-      frog.anims.play("hit", true )
+      frog.setVelocityY(-600)
+      frog.anims.play('jump', true)
+      audio_jumping.play()
     }
+    // else if (cursors.up.isDown & !frog.body.onFloor()) {
+    //     frog.setVelocityY(-800)
+    //     frog.anims.play('double-jump', true)
+    //     audio_jumping.play()
+    // }
       else {
       frog.setVelocityX(0)
       frog.anims.play('idle', true)
@@ -425,16 +533,31 @@ function update() {
     if (cursors.up.isDown && frog.body.touching.down)
   {
       frog.setVelocityY(-330);
-  }
-  } else {
-    frog.anims.play("hit", true)
-    gameText =  "GAME OVER"
-    gameOverText.setText(gameText)
-
+      frog.anims.play('jump', true )
   }
 
+  if (trophyCollected === true) {
+    // trophy.body.disableBody(true)
+    audio_trophySound.resume()
+
+  }
+  } 
+  else {
   
+    
+    // if (myGame.sound.context.state === 'suspended' || myGame.sound.context.state==="running") {
+    //   myGame.sound.context.resume();
+    //  
+    //   }
+    
+    frog.anims.play("hit", true)
+    audio_gameover.resume()
+    gameText =  "GAME OVER ❌"
+    gameOverText.setText(gameText)
+   
 
+
+  }
 
   
   //remove cursors
@@ -461,8 +584,8 @@ const myGame = new Game ({
   physics: {
     default: 'arcade', 
     arcade: {
-      gravity: { y: 2000 },
-      debug: true,
+      gravity: { y: 1000 },
+      debug: false,
     }
   }, 
   scene: {preload: preload, 
